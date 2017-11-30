@@ -11,8 +11,6 @@
 #include <ucontext.h>
 #include <unistd.h>
 
-static ucontext_t ctx[3];
-
 #define iterations 1000000
 
 void first_ctx_func(int sock) {
