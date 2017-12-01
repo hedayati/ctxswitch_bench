@@ -67,6 +67,9 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
+  val = 0;
+  semctl(sem_id, 0, SETVAL, val);
+
   val = 1;
   semctl(sem_id, 1, SETVAL, val);
 

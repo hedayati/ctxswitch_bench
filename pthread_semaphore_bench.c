@@ -6,9 +6,7 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/ipc.h>
-#include <sys/ipc.h>
 #include <sys/mman.h>
-#include <sys/sem.h>
 #include <sys/sem.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -73,6 +71,9 @@ int main(int argc, char const *argv[]) {
     perror("semget failed");
     exit(1);
   }
+
+  val = 0;
+  semctl(sem_id, 0, SETVAL, val);
 
   val = 1;
   semctl(sem_id, 1, SETVAL, val);
