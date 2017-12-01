@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <libgen.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,8 @@
 #include <ucontext.h>
 #include <unistd.h>
 
-int sem_id;
+sem_t *sem0;
+sem_t *sem1;
 
 #define iterations 1000000
 
@@ -21,57 +23,40 @@ void first_ctx_func() {
   struct timespec start, end;
   unsigned long diff;
   int i = 0;
-  struct sembuf sem;
-  sem.sem_flg = 0;
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
   for (; i < iterations; ++i) {
-    sem.sem_num = 1;
-    sem.sem_op = -1;
-    semop(sem_id, &sem, 1);
-    sem.sem_num = 0;
-    sem.sem_op = 1;
-    semop(sem_id, &sem, 1);
+    sem_wait(sem1);
+    sem_post(sem0);
   }
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for fork-sysvsemaphore.\n",
+  printf("elapsed time = %llu nanoseconds for fork-semaphore.\n",
          (long long unsigned int)diff / iterations);
+
+  exit(0);
 }
 
 void second_ctx_func() {
   int i = 0;
-  struct sembuf sem;
-  sem.sem_flg = 0;
-
   for (; i < iterations; ++i) {
-    sem.sem_num = 0;
-    sem.sem_op = -1;
-    semop(sem_id, &sem, 1);
-    sem.sem_num = 1;
-    sem.sem_op = 1;
-    semop(sem_id, &sem, 1);
+    sem_wait(sem0);
+    sem_post(sem1);
   }
 }
 
 int main(int argc, char const *argv[]) {
-  int val;
-  key_t key;
+  sem0 = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE,
+              MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  sem1 = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE,
+              MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
-  key = ftok("/etc/passwd", 'A');
-  sem_id = semget(key, 2, 0666 | IPC_CREAT);
-  if (sem_id < 0) {
-    perror("semget failed");
-    exit(1);
-  }
+  if (!sem0 || !sem1) exit(1);
 
-  val = 0;
-  semctl(sem_id, 0, SETVAL, val);
-
-  val = 1;
-  semctl(sem_id, 1, SETVAL, val);
+  sem_init(sem0, 1, 0);
+  sem_init(sem1, 1, 1);
 
   if (fork()) {
     first_ctx_func();
