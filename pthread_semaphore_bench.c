@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <libgen.h>
 #include <pthread.h>
@@ -23,7 +24,14 @@ void *first_ctx_func(void *arg) {
   unsigned long diff;
   int i = 0;
   struct sembuf sem;
+  cpu_set_t cpuset;
+  pthread_t thread;
   sem.sem_flg = 0;
+
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -46,11 +54,17 @@ void *first_ctx_func(void *arg) {
 }
 
 void second_ctx_func() {
-  int i = 0;
   struct sembuf sem;
+  cpu_set_t cpuset;
+  pthread_t thread;
   sem.sem_flg = 0;
 
-  for (; i < iterations; ++i) {
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+
+  for (;;) {
     sem.sem_num = 0;
     sem.sem_op = -1;
     semop(sem_id, &sem, 1);

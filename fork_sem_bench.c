@@ -1,5 +1,7 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <libgen.h>
+#include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +25,13 @@ void first_ctx_func() {
   struct timespec start, end;
   unsigned long diff;
   int i = 0;
+  cpu_set_t cpuset;
+  pthread_t thread;
+
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -41,6 +50,13 @@ void first_ctx_func() {
 
 void second_ctx_func() {
   int i = 0;
+  cpu_set_t cpuset;
+  pthread_t thread;
+
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
   for (; i < iterations; ++i) {
     sem_wait(sem0);
     sem_post(sem1);

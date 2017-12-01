@@ -1,5 +1,7 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <libgen.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +20,13 @@ void first_ctx_func(int sock) {
   struct timespec start, end;
   unsigned long diff;
   char buf[1];
+  cpu_set_t cpuset;
+  pthread_t thread;
+
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -45,6 +54,14 @@ void first_ctx_func(int sock) {
 
 void second_ctx_func(int sock) {
   char buf[1] = {0};
+  cpu_set_t cpuset;
+  pthread_t thread;
+
+  thread = pthread_self();
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+  
   for (; buf[0] != 'e';) {
     buf[0] = 'p';
     if (write(sock, buf, 1) != 1) {

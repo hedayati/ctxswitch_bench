@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for uctx.\n",
+  printf("elapsed time = %llu nanoseconds for ucontext swap.\n",
          (long long unsigned int)diff / iterations);
 
   return 0;
