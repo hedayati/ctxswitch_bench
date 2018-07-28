@@ -15,6 +15,8 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "measure.h"
+
 int sem_id;
 
 #define iterations 1000000
@@ -22,6 +24,7 @@ int sem_id;
 void *first_ctx_func(void *arg) {
   struct timespec start, end;
   unsigned long diff;
+  unsigned long beg, fin;
   int i = 0;
   struct sembuf sem;
   cpu_set_t cpuset;
@@ -35,6 +38,8 @@ void *first_ctx_func(void *arg) {
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
+  beg = get_ticks_start();
+
   for (; i < iterations; ++i) {
     sem.sem_num = 1;
     sem.sem_op = -1;
@@ -44,10 +49,12 @@ void *first_ctx_func(void *arg) {
     semop(sem_id, &sem, 1);
   }
 
+  fin = get_ticks_end();
+
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for pthread-sysvsemaphore.\n",
-         (long long unsigned int)diff / iterations);
+  printf("elapsed time = %llu nanoseconds %llu cycles for pthread-sysvsemaphore.\n",
+         (long long unsigned int)diff / iterations, (fin - beg) / iterations);
 
   exit(0);
   return NULL;

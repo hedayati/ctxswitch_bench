@@ -13,6 +13,8 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "measure.h"
+
 pthread_cond_t cond;
 pthread_mutex_t mutex;
 
@@ -21,6 +23,7 @@ pthread_mutex_t mutex;
 void *first_ctx_func(void *arg) {
   struct timespec start, end;
   unsigned long diff;
+  unsigned long beg, fin;
   int i = 0;
   cpu_set_t cpuset;
   pthread_t thread;
@@ -32,6 +35,8 @@ void *first_ctx_func(void *arg) {
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
+  beg = get_ticks_start();
+
   for (; i < iterations; ++i) {
     pthread_mutex_lock(&mutex);
     pthread_cond_signal(&cond);
@@ -39,10 +44,12 @@ void *first_ctx_func(void *arg) {
     pthread_mutex_unlock(&mutex);
   }
 
+  fin = get_ticks_start();
+
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for pthread-mutex.\n",
-         (long long unsigned int)diff / iterations);
+  printf("elapsed time = %llu nanoseconds %llu cycles for pthread-mutex.\n",
+         (long long unsigned int)diff / iterations, (fin - beg) / iterations);
 
   exit(0);
   return NULL;

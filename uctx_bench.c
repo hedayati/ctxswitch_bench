@@ -10,6 +10,8 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "measure.h"
+
 static ucontext_t ctx[3];
 
 #define iterations 1000000
@@ -41,6 +43,7 @@ void second_ctx_func() {
 int main(int argc, char const *argv[]) {
   struct timespec start, end;
   unsigned long diff;
+  unsigned long beg, fin;
 
   void *stack_first = mmap(NULL, 1 << 23, PROT_READ | PROT_WRITE,
                            MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -63,12 +66,16 @@ int main(int argc, char const *argv[]) {
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
+  beg = get_ticks_start();
+
   swapcontext(&ctx[0], &ctx[2]);
+
+  fin = get_ticks_end();
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for ucontext swap.\n",
-         (long long unsigned int)diff / iterations);
+  printf("elapsed time = %llu nanoseconds %llu cycles for ucontext swap.\n",
+         (long long unsigned int)diff / iterations, (fin - beg) / iterations);
 
   return 0;
 

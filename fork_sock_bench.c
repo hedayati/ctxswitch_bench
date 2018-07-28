@@ -13,12 +13,15 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "measure.h"
+
 #define iterations 1000000
 
 void first_ctx_func(int sock) {
   int c = 0;
   struct timespec start, end;
   unsigned long diff;
+  unsigned long beg, fin;
   char buf[1];
   cpu_set_t cpuset;
   pthread_t thread;
@@ -29,6 +32,8 @@ void first_ctx_func(int sock) {
   pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
+
+  beg = get_ticks_start();
 
   while (c < iterations) {
     if (read(sock, buf, 1) != 1) {
@@ -46,10 +51,12 @@ void first_ctx_func(int sock) {
   buf[0] = 'e';
   write(sock, buf, 1);
 
+  fin = get_ticks_start();
+
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for fork-socket.\n",
-         (long long unsigned int)diff / iterations);
+  printf("elapsed time = %llu nanoseconds %llu cycles for fork-socket.\n",
+         (long long unsigned int)diff / iterations, (fin - beg) / iterations);
 }
 
 void second_ctx_func(int sock) {

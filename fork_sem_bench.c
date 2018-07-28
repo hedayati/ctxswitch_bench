@@ -16,6 +16,8 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "measure.h"
+
 sem_t *sem0;
 sem_t *sem1;
 
@@ -24,6 +26,7 @@ sem_t *sem1;
 void first_ctx_func() {
   struct timespec start, end;
   unsigned long diff;
+  unsigned long beg, fin;
   int i = 0;
   cpu_set_t cpuset;
   pthread_t thread;
@@ -35,15 +38,19 @@ void first_ctx_func() {
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
+  beg = get_ticks_start();
+
   for (; i < iterations; ++i) {
     sem_wait(sem1);
     sem_post(sem0);
   }
 
+  fin = get_ticks_start();
+
   clock_gettime(CLOCK_MONOTONIC, &end);
   diff = 1E9 * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-  printf("elapsed time = %llu nanoseconds for fork-semaphore.\n",
-         (long long unsigned int)diff / iterations);
+  printf("elapsed time = %llu nanoseconds %llu cycles for fork-semaphore.\n",
+         (long long unsigned int)diff / iterations, (fin - beg) / iterations);
 
   exit(0);
 }
